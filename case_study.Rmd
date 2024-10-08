@@ -7,12 +7,171 @@ output: github_document
 
 ```{r setup, include=FALSE}
 library(tidyverse)
-```
 
+# Specify figure sizes and specify theme options for ggplot
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
 
 Load key packages.
 ```{r}
 library(p8105.datasets)
+
 data(nyc_airbnb)
+```
+
+## Brainstorm questions
+
+* Where are max and min airbnb prices? 
+  * What are average prices?
+  * What factors affect prices?
+```{r}
+# Average prices
+nyc_airbnb |> 
+  summarize(
+    min_price = min(price, na.rm = TRUE),
+    max_price = max(price, na.rm = TRUE),
+    avg_price = mean(price, na.rm = TRUE)
+  )
+
+# Avg price by borough and neighborhood
+nyc_airbnb |> 
+  group_by(neighbourhood_group, neighbourhood) |> 
+  summarize(
+    avg_price = mean(price, na.rm = TRUE)
+  )
+
+# Average price by borough
+nyc_airbnb |> 
+  group_by(neighbourhood_group) |> 
+  summarize(
+    avg_price = mean(price, na.rm = TRUE)
+  )
+
+# Graphical visualization of price distribution per borough
+nyc_airbnb |> 
+  ggplot(aes(x = price, fill = neighbourhood_group)) +
+  geom_histogram() +
+  facet_grid(. ~ neighbourhood_group) +
+  scale_x_continuous(limits = c(0, 250))
+
+# Does room type affect price
+nyc_airbnb |> 
+  group_by(room_type) |> 
+  summarize(
+    avg_price = mean(price, na.rm = TRUE)
+  )
+
+# Graphical visualization of price distribution per room type
+nyc_airbnb |> 
+  ggplot(aes(x = price, fill = room_type)) +
+  geom_histogram(position = "dodge") +
+  scale_x_continuous(limits = c(0, 250))
+```
+
+
+* Where are prices going up and down over time?
+* What's the relationship between number of reviews and average reviews?
+* Does room type affect availability?
+* Are there repeat hosts?
+  * If so, what does that mean?
+  
+```{r}
+nyc_airbnb %>%
+  filter(calculated_host_listings_count > 34) %>%
+  distinct(host_id, host_name, calculated_host_listings_count)
+```
+
+* Where is the unit located?
+  * What areas are popular?
+```{r}
+nyc_airbnb |> 
+  group_by(neighbourhood_group, room_type) |> 
+  summarize(mean_price = mean(price)) |> 
+  pivot_wider(
+    names_from = room_type,
+    values_from = mean_price
+  )
+```
+
+## Answeirng other questions
+
+```{r}
+nyc_airbnb |> 
+  ggplot(aes(x = review_scores_location, y = price)) +
+  geom_point()
+```
+
+
+Impact of borough on price -- Manhattan
+```{r}
+nyc_airbnb |> 
+  filter(
+    neighbourhood_group == "Manhattan",
+    price < 1000) |> 
+  ggplot(aes(x = lat, y = long, color = price)) +
+  geom_point(alpha = 0.2)
+```
+
+Summary table
+```{r}
+nyc_airbnb |> 
+  filter(
+    neighbourhood_group == "Manhattan",
+    price < 1000, 
+    room_type == "Entire home/apt") |> 
+  group_by(neighbourhood) |> 
+  summarize(mean_price = mean(price, na.rm = TRUE)) |> 
+  arrange(desc(mean_price))
+```
+
+Visualization
+```{r}
+nyc_airbnb |> 
+  filter(
+    neighbourhood_group == "Manhattan",
+    price < 1000, 
+    room_type == "Entire home/apt") |> 
+  mutate(neighbourhood = fct_reorder(neighbourhood, price)) |> 
+  ggplot(aes(x = neighbourhood, y = price)) +
+  geom_violin() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1))
+```
+
+## Using leaflet
+
+```{r}
+library(p8105.datasets)
+library(leaflet)
+```
+
+
+```{r}
+pal <- colorNumeric(
+  palette = "viridis", 
+  domain = nyc_airbnb$review_scores_location)
+
+nyc_airbnb |> 
+  filter(
+    neighbourhood_group == "Manhattan",
+    price < 1000) |> 
+  leaflet() |> 
+  addTiles() |> 
+  addCircleMarkers(~lat, ~long, color = ~ pal(review_scores_location), radius = 2)
 ```
 
