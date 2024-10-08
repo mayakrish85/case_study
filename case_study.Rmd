@@ -1,0 +1,18 @@
+---
+title: "Case Study"
+author: "Maya Krishnamoorthy"
+date: "2024-10-08"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+```
+
+
+Load key packages.
+```{r}
+library(p8105.datasets)
+data(nyc_airbnb)
+```
+
